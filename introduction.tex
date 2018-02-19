@@ -1,0 +1,77 @@
+%
+% INTRODUCTION
+%
+\begin{abstract}
+We propose two practical means of assessing the robustness of IPW estimators of average treatment effects to error in estimated propensity scores, based on perturbations of the estimates. We briefly outline an approach for generalizing this idea to CATE estimation.
+\end{abstract}
+
+\section{Introduction}
+Importance sampling (IS) estimators are commonly used within causal inference to obtain estimates of average treatment effects and prediction risk under a shift in treatment policy.
+
+With $x_1, ..., x_n \sim q$, IS estimators build on the observation that
+$$
+\E_p[f(x)] = \E_q[f(x)\frac{p(x)}{q(x)}] \approx \frac{1}{n}\sum_{i=1}^n \frac{p(x_i)}{q(x_i)}f(x_i)]
+$$
+Typically, neither the density $q$ or the ratio $p/q$ are known in practice, and have to be estimated from data. Often, the functional form of $q$ is unknown, and assumptions are made in the form of a model $f(x) \approx q(x)$. As a result, IS estimators primarliy suffer from two problems: a) large finite-sample variance b) sensitivity to importance model misspecification.
+
+\subsection{Average treatment effects}
+A specical case of importance sampling estimators are inverse propensity weighting estimators, used to estimate the causal effect of an intervention $T$ on an outcome $Y$ in a context $X$. Let $Y(0)$ and $Y(1)$ be potential outcomes, $Y = (1-T)Y(0) + T Y(1)$, and let these variables be distributed as $p(X, T, Y)$. The average treatment effect $ATE$ of $T$ on $Y$ is defined as
+$$
+ATE = \E[Y(1)] - \E_x[Y(0)]
+$$
+which under ignorability and overlap is equal to
+\begin{align}
+ATE & = \E[\frac{p(x)}{p(x\mid T=1)} Y(1) \mid T=1] - \E[\frac{p(x)}{p(x\mid T=0)} Y(0) \mid T=0] \\
+& = \E[\frac{p(T=1)}{p(T=1 \mid x)} Y \mid T=1] - \E[\frac{p(T=0)}{p(T=0 \mid x)} Y \mid T=0] \\
+& \approx \frac{1}{n_1}\sum_{i : t_i = 1}\frac{y_i}{p(t_i \mid x_i)} - \frac{1}{n_0}\sum_{i : t_i = 0}\frac{y_i}{p(t_i \mid x_i)} =: \hat{ATE}
+\end{align}
+
+Now, consider the case where $p(T \mid X)$ is unknown and needs to be estimated from data through a function $f(x, t)$. We may then form an estimate of $ATE$, with $f_i = f(x_i, t_i)$ as
+$$
+\hat{ATE}_f := \frac{1}{n_1}\sum_{i : t_i = 1}\frac{y_i}{f_i} - \frac{1}{n_0}\sum_{i : t_i = 0}\frac{y_i}{f_i}~.
+$$
+This estimate is sensitive not only to the functional misspecification of $f$, but to hidden confounders that should have been included in its input. We proceed to reason about the sensitivity of this estimator to error in $f$.
+
+\section{Assessing sensitivity}
+Following notation from the previous section, we let $f_i$ denote the estimated propensity score of unit $i$. Let $f^*(X, T)$ be a score such that,
+$$
+ATE = \E\left[\frac{Y}{f^*(X, 1)} \mid T=1\right] - \E\left[\frac{Y}{f^*(X, 0)} \mid T=0\right]~.
+$$
+By expanding the density over which the expectation is taken, as well as the input to $f^*$, this score might account for hidden confounding not available to the function $f$. This scenario is also covered by our following arguments. It is natural to ask---how sensitive is our estimate of ATE to differences between $f$ and $f^*$? We propose two means of measuring this.
+
+\subsection{Density ratio constraints}
+Consider a scenario in which we have reason to believe that our estimate of the propensity score for any unit $i$ is accurate up to a small constant factor. In this case, it is instructive to consider the robustness of our ATE estimate w.r.t. such small perturbations. The largest possible deviation is the solution to the following optimization problem.
+\begin{equation*}
+\begin{aligned}
+& \underset{g}{\text{maximize}}
+& & |\hat{ATE}_{g}- \hat{ATE}_f| \\
+& \text{subject to}
+& & \alpha \leq \frac{g(x_i, t_i)}{f(x_i, t_i)} \leq \beta, \; i = 1, \ldots, n.
+\end{aligned}
+\end{equation*}
+Here, $\alpha$ and $\beta$ are factors close to 1 if we believe our estimates of $f^*$ to be accurate.
+
+\subsection{Distributional distance minimization}
+In contrast to the previous section, we might want to ask---how small can an adversarial perturbation be, and still change my estimate significantly? We might answer that by considering perturbations to the estimated score measured by a distance metric $D$.
+
+\begin{equation*}
+\begin{aligned}
+& \underset{g}{\text{minimize}}
+& & D(p(f\mid x), p(g \mid x)) \\
+& \text{subject to}
+& & |\hat{ATE}_{g}- \hat{ATE}_f| \leq \epsilon
+\end{aligned}
+\end{equation*}
+
+\subsection{Minimizing robust re-weighted risk}
+Finally, as previous sections have only addressed estimation of the average treatment effect, we might wonder how to adopt a similar strategy in the estimation of conditional average treatment effects (CATE). I believe an interesting strategy is to minimize the worst-case re-weighted risk within an $\epsilon$-ball around the estimated propensity score.
+\begin{equation*}
+\begin{aligned}
+& \underset{h}{\text{minimize}}
+& & \sup_{g}\; \E\left[\frac{L(h(x,t), y)}{g(x, t)} \right] \\
+& \text{subject to}
+& & 1-\epsilon \leq \frac{g(x, t)}{f(x, t)} \leq 1+\epsilon
+\end{aligned}
+\end{equation*}
+
+See \citep{namkoong2017variance} for further inspiration. Minimizing this supremum risk will ensure that the predictor $h$ is accurate even under perturbations of the re-weighting.
